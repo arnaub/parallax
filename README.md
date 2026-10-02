@@ -2,15 +2,18 @@
 
 A personal news reader, built feature by feature, in the open.
 
-Parallax pulls news from multiple outlets via RSS, surfaces what's most
-relevant to you on one dashboard, and — its whole point — shows how
-different outlets cover the *same* story side by side, so you see the
-nuance instead of a single framing. It's meant to replace idle social
-media scrolling with something finite and intentional: read what
-matters, then stop.
+Parallax pulls news from multiple outlets via RSS and groups coverage of
+the same ongoing situation — a conflict, a political crisis, a
+slow-moving story — together. It's deliberately not built for
+immediacy: no race to be first, no real-time pressure. The goal is the
+understanding you'd get from reading twenty articles across a week,
+from outlets with different perspectives and in different languages,
+without having to read all twenty. Finite and intentional by design —
+read what matters, then stop.
 
-**Status:** early scaffolding — no features yet. See `docs/plans/` for
-what's approved and in progress.
+**Status:** RSS ingestion and the dashboard are live; story grouping
+(linking coverage of the same situation across outlets/languages) is in
+progress. See `docs/plans/` for what's approved and in progress.
 
 ## Stack
 
