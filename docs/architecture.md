@@ -4,28 +4,31 @@ Parallax is a Phoenix 1.7 / LiveView 1.0 app backed by Postgres (Ecto).
 
 ## Contexts
 
-None yet. Each Phoenix context is a bounded module (`lib/parallax/<context>/`)
-with a small public API; LiveViews and controllers call into contexts, never
-into schemas or Ecto directly. The first context we build and get approved
-becomes the pattern every later context follows — see Reference modules
-below.
+Each Phoenix context is a bounded module (`lib/parallax/<context>/`) with a
+small public API; LiveViews and controllers call into contexts, never into
+schemas or Ecto directly.
+
+- **`Parallax.Feeds`** — Outlets and the Coverage ingested from their
+  RSS/Atom feeds. The first context built, and the reference for how later
+  contexts should be shaped — see Reference modules below.
 
 ## Data flow
 
-Pending — documented once the first context (likely feed ingestion) exists
-end-to-end: where RSS polling runs, how articles become persisted rows, how
-the dashboard reads them.
+`Parallax.Feeds.Poller` (a supervised GenServer) polls every Outlet hourly.
+`Parallax.Feeds.Fetcher` is the only module that knows about HTTP or feed
+XML — it fetches a feed URL and parses it into plain item maps. `Feeds`
+itself turns those into Coverage rows, deduped per outlet on a computed
+`dedup_key` (the feed item's guid, falling back to its URL). Nothing reads
+Coverage yet — that starts with the dashboard feature.
 
 ## Reference modules
 
-Pending. `new-context` and `liveview-component` are meant to point at a real
-example instead of embedding a template. Until one exists they describe the
-expected shape in words; update this table and the skills as soon as the
-first context/LiveView is approved.
+`new-context` and `liveview-component` are meant to point at a real example
+instead of embedding a template.
 
 | Role | Reference module | Status |
 |---|---|---|
-| Context | — | pending |
+| Context | `Parallax.Feeds` (`lib/parallax/feeds.ex`) | done |
 | LiveView | — | pending |
 | Function component | — | pending |
 

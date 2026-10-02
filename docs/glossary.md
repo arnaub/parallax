@@ -16,12 +16,14 @@ of the feature that needs them.
   of what happened, ranked by the user's Interests.
 - **Interests** — the signals that drive relevance: topics, outlets, and
   keywords the user sets explicitly, refined by what they actually read.
+- **Outlet** — a news source Parallax ingests from: a name, homepage,
+  RSS/Atom feed URL, and language. Every piece of Coverage belongs to one
+  Outlet.
 
 ## Pending
 
 Defined only once the related feature is planned, not before:
 
-- Outlet (source feed) — model and metadata
 - What a finished/finite reading session means in product terms
 - Preference learning — what signals feed it, how they decay or update
 - Any term needed for notifications, digests, or search
