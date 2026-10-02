@@ -88,9 +88,24 @@ defmodule Parallax.Feeds.Fetcher do
       guid: blank_to_nil(entry.guid),
       url: String.trim(entry.url || ""),
       title: String.trim(entry.title || ""),
-      summary: blank_to_nil(entry.summary),
+      summary: entry.summary |> strip_html() |> blank_to_nil(),
       published_at: parse_datetime(entry.published_at)
     }
+  end
+
+  # Feeds commonly embed raw HTML (tracking pixels, "read more" links)
+  # in their summary/description field. We only ever show this as a
+  # plain-text snippet, so strip markup here once rather than in every
+  # future place that reads Coverage.summary.
+  defp strip_html(nil), do: nil
+
+  defp strip_html(text) do
+    text
+    |> String.replace(~r/<[^>]*>/, "")
+    |> String.replace("&amp;", "&")
+    |> String.replace("&nbsp;", " ")
+    |> String.replace(~r/&(apos|#39);/, "'")
+    |> String.replace("&quot;", "\"")
   end
 
   defp blank_to_nil(nil), do: nil

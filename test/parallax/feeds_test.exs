@@ -2,7 +2,21 @@ defmodule Parallax.FeedsTest do
   use Parallax.DataCase, async: true
 
   alias Parallax.Feeds
+  alias Parallax.Feeds.Coverage
   alias Parallax.Feeds.Fetcher
+
+  defp insert_coverage!(outlet, attrs) do
+    defaults = %{
+      outlet_id: outlet.id,
+      dedup_key: "key-#{System.unique_integer([:positive])}",
+      url: "https://example.com/#{System.unique_integer([:positive])}",
+      title: "Title",
+      inserted_at: ~U[2024-01-01 00:00:00Z],
+      updated_at: ~U[2024-01-01 00:00:00Z]
+    }
+
+    Coverage |> struct(Map.merge(defaults, attrs)) |> Repo.insert!()
+  end
 
   defp outlet_attrs(overrides \\ %{}) do
     Enum.into(overrides, %{
@@ -108,6 +122,34 @@ defmodule Parallax.FeedsTest do
       end)
 
       assert {:error, {:http_status, 500}} = Feeds.poll_outlet(outlet)
+    end
+  end
+
+  describe "list_coverage/1" do
+    test "defaults to 30 items, respects an explicit limit" do
+      outlet = create_outlet!()
+      for _ <- 1..35, do: insert_coverage!(outlet, %{})
+
+      assert length(Feeds.list_coverage()) == 30
+      assert length(Feeds.list_coverage(limit: 5)) == 5
+    end
+
+    test "sorts newest first, falling back to inserted_at when published_at is null" do
+      outlet = create_outlet!()
+
+      old = insert_coverage!(outlet, %{published_at: ~U[2024-01-01 00:00:00Z]})
+
+      undated_recent =
+        insert_coverage!(outlet, %{
+          published_at: nil,
+          inserted_at: ~U[2024-06-01 00:00:00Z]
+        })
+
+      newest =
+        insert_coverage!(outlet, %{published_at: ~U[2024-12-01 00:00:00Z]})
+
+      assert Feeds.list_coverage() |> Enum.map(& &1.id) ==
+               [newest.id, undated_recent.id, old.id]
     end
   end
 
