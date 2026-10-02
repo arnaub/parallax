@@ -1,0 +1,11 @@
+<div class="mx-auto max-w-2xl">
+  <h1 class="text-2xl font-bold">Dashboard</h1>
+
+  <p :if={@coverage == []} class="mt-4 text-zinc-500">
+    No coverage yet — wait for the next scheduled poll, or run <code>mix feeds.poll</code>.
+  </p>
+
+  <div :if={@coverage != []}>
+    <.coverage_card :for={item <- @coverage} item={item} />
+  </div>
+</div>

@@ -24,9 +24,22 @@ defmodule Parallax.Feeds do
     %Outlet{} |> Outlet.changeset(attrs) |> Repo.insert()
   end
 
-  @doc "Coverage newest first."
-  def list_coverage do
-    Coverage |> order_by(desc: :published_at) |> Repo.all()
+  @doc """
+  Coverage newest first, limited to `:limit` (default 30), with its
+  Outlet preloaded. Sorts by published_at, falling back to inserted_at
+  when a feed omitted the date — plain `order_by(desc: :published_at)`
+  would otherwise put undated items first in Postgres, wrongly looking
+  newest.
+  """
+  def list_coverage(opts \\ []) do
+    limit = Keyword.get(opts, :limit, 30)
+
+    from(c in Coverage,
+      order_by: [desc: coalesce(c.published_at, c.inserted_at)],
+      limit: ^limit,
+      preload: :outlet
+    )
+    |> Repo.all()
   end
 
   @doc """
