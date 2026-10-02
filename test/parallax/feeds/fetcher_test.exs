@@ -52,7 +52,24 @@ defmodule Parallax.Feeds.FetcherTest do
     assert first.published_at == ~U[2024-10-02 10:00:00Z]
 
     assert second.guid == nil
-    assert second.summary == "Has <b>HTML</b> in it"
+    assert second.summary == "Has HTML in it"
+  end
+
+  test "strips embedded HTML and decodes common entities from the summary" do
+    xml = """
+    <rss version="2.0"><channel>
+      <item>
+        <title>Story</title>
+        <link>https://example.com/story</link>
+        <description><![CDATA[Rain & wind today&nbsp;<a href="x">Leer</a><img src="y" alt=""/>]]></description>
+      </item>
+    </channel></rss>
+    """
+
+    Req.Test.stub(Fetcher, fn conn -> Req.Test.text(conn, xml) end)
+
+    assert {:ok, [item]} = Fetcher.fetch("https://example.com/feed.xml")
+    assert item.summary == "Rain & wind today Leer"
   end
 
   test "parses Atom entries" do
