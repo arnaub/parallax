@@ -6,8 +6,8 @@ import Config
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
 config :parallax, Parallax.Repo,
-  username: "postgres",
-  password: "postgres",
+  username: System.get_env("DB_USERNAME", "postgres"),
+  password: System.get_env("DB_PASSWORD", "postgres"),
   hostname: "localhost",
   database: "parallax_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
@@ -23,6 +23,13 @@ config :parallax, ParallaxWeb.Endpoint,
 
 # In test we don't send emails
 config :parallax, Parallax.Mailer, adapter: Swoosh.Adapters.Test
+
+# Never poll real outlets from the test suite
+config :parallax, :start_feeds_poller, false
+
+# Route Feeds.Fetcher's requests through Req.Test instead of the network;
+# each test registers its own response with Req.Test.stub/2
+config :parallax, :feeds_req_options, plug: {Req.Test, Parallax.Feeds.Fetcher}
 
 # Disable swoosh api client as it is only required for production adapters
 config :swoosh, :api_client, false
