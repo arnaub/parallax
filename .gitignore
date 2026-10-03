@@ -46,6 +46,7 @@ npm-debug.log
 # Local secrets/environment overrides — never commit real credentials
 .env
 .env.*
+!.env.example
 
 # Per-developer Claude Code overrides (settings.json itself is shared/tracked)
 .claude/settings.local.json
