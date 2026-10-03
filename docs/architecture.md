@@ -11,6 +11,12 @@ schemas or Ecto directly.
 - **`Parallax.Feeds`** — Outlets and the Coverage ingested from their
   RSS/Atom feeds. The first context built, and the reference for how later
   contexts should be shaped — see Reference modules below.
+- **`Parallax.Stories`** — screens Coverage for significant news and groups
+  what passes into long-running Stories, using an LLM (see ADR 0002).
+  Reads/writes Coverage only through `Feeds`' public API
+  (`list_unclustered_coverage/0`, `assign_story/2`, `mark_irrelevant/1`)
+  — it never queries the `coverage` table directly, same rule `Feeds`
+  itself follows.
 
 ## Data flow
 
@@ -25,6 +31,16 @@ reader: it calls `Feeds.list_coverage/1` for the latest 30 rows (newest
 `published_at`, falling back to `inserted_at` when a feed omitted the
 date) and renders them — no personalized ranking yet, no live updates
 after the page loads.
+
+`Parallax.Stories.Scheduler` (a separate supervised GenServer, on its own
+daily interval — independent of the hourly `Feeds.Poller`) runs
+`Stories.cluster_unclustered_coverage/0`. For each unscreened Coverage
+item, it asks Gemini (`Stories.Matcher` + `Stories.Gemini`) to judge
+whether it's significant news at all, and if so, to either match it to
+one of the ~50 most recently-active Stories or start a new one — all in
+one call. Items are processed sequentially, paced below the API's rate
+limit, since every call hits the same endpoint. Nothing reads Stories
+yet — that starts with the Story synthesis feature.
 
 ## Reference modules
 

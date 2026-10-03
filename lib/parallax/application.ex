@@ -18,7 +18,7 @@ defmodule Parallax.Application do
         {Finch, name: Parallax.Finch},
         # Start to serve requests, typically the last entry
         ParallaxWeb.Endpoint
-      ] ++ feeds_poller_child()
+      ] ++ feeds_poller_child() ++ stories_scheduler_child()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -37,6 +37,14 @@ defmodule Parallax.Application do
   defp feeds_poller_child do
     if Application.get_env(:parallax, :start_feeds_poller, true) do
       [Parallax.Feeds.Poller]
+    else
+      []
+    end
+  end
+
+  defp stories_scheduler_child do
+    if Application.get_env(:parallax, :start_stories_scheduler, true) do
+      [Parallax.Stories.Scheduler]
     else
       []
     end

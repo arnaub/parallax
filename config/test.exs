@@ -31,6 +31,23 @@ config :parallax, :start_feeds_poller, false
 # each test registers its own response with Req.Test.stub/2
 config :parallax, :feeds_req_options, plug: {Req.Test, Parallax.Feeds.Fetcher}
 
+# Never run Story clustering automatically from the test suite
+config :parallax, :start_stories_scheduler, false
+
+# Route Stories.Gemini's requests through Req.Test instead of the
+# network; each test registers its own response with Req.Test.stub/2.
+# A fake key lets Gemini.generate/2 reach the stub instead of failing
+# fast on :missing_api_key.
+config :parallax, :stories_req_options,
+  plug: {Req.Test, Parallax.Stories.Gemini}
+
+System.put_env("GEMINI_API_KEY", "test-key")
+
+# No pacing delay between sequential Gemini calls, and no default
+# retry-backoff delay when a stubbed 429 has no retryDelay, in tests
+config :parallax, :stories_call_interval_ms, 0
+config :parallax, :stories_default_retry_delay_ms, 0
+
 # Disable swoosh api client as it is only required for production adapters
 config :swoosh, :api_client, false
 

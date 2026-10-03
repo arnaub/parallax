@@ -4,6 +4,7 @@ defmodule Parallax.FeedsTest do
   alias Parallax.Feeds
   alias Parallax.Feeds.Coverage
   alias Parallax.Feeds.Fetcher
+  alias Parallax.Stories.Story
 
   defp insert_coverage!(outlet, attrs) do
     defaults = %{
@@ -151,6 +152,72 @@ defmodule Parallax.FeedsTest do
       assert Feeds.list_coverage() |> Enum.map(& &1.id) ==
                [newest.id, undated_recent.id, old.id]
     end
+  end
+
+  describe "list_unclustered_coverage/0, assign_story/2, and mark_irrelevant/1" do
+    test "only returns Coverage never screened, oldest first" do
+      outlet = create_outlet!()
+
+      unscreened_old =
+        insert_coverage!(outlet, %{published_at: ~U[2024-01-01 00:00:00Z]})
+
+      unscreened_new =
+        insert_coverage!(outlet, %{published_at: ~U[2024-02-01 00:00:00Z]})
+
+      clustered =
+        insert_coverage!(outlet, %{
+          published_at: ~U[2024-03-01 00:00:00Z],
+          story_id: insert_story!().id,
+          relevant: true
+        })
+
+      screened_irrelevant =
+        insert_coverage!(outlet, %{
+          published_at: ~U[2024-04-01 00:00:00Z],
+          relevant: false
+        })
+
+      results = Feeds.list_unclustered_coverage()
+
+      assert Enum.map(results, & &1.id) == [
+               unscreened_old.id,
+               unscreened_new.id
+             ]
+
+      refute clustered.id in Enum.map(results, & &1.id)
+      refute screened_irrelevant.id in Enum.map(results, & &1.id)
+    end
+
+    test "assign_story/2 sets story_id and marks relevant" do
+      outlet = create_outlet!()
+      coverage = insert_coverage!(outlet, %{})
+      story = insert_story!()
+
+      assert {:ok, updated} = Feeds.assign_story(coverage, story.id)
+      assert updated.story_id == story.id
+      assert updated.relevant == true
+    end
+
+    test "mark_irrelevant/1 sets relevant to false without a story_id" do
+      outlet = create_outlet!()
+      coverage = insert_coverage!(outlet, %{})
+
+      assert {:ok, updated} = Feeds.mark_irrelevant(coverage)
+      assert updated.relevant == false
+      assert updated.story_id == nil
+    end
+  end
+
+  defp insert_story!(attrs \\ %{}) do
+    defaults = %{
+      title: "A story",
+      description: "A description",
+      last_coverage_at: ~U[2024-01-01 00:00:00Z]
+    }
+
+    %Story{}
+    |> Story.changeset(Map.merge(defaults, attrs))
+    |> Repo.insert!()
   end
 
   describe "poll_all_outlets/0" do
