@@ -30,4 +30,11 @@ Defined only once the related feature is planned, not before:
 - Story synthesis — the evolving multi-perspective explanation of a
   Story (origin, current state, each side's framing, implications),
   built from its Coverage. A separate feature from Story grouping.
+- Story hierarchy — parent/child relationships between Stories, e.g. a
+  broad "AI" Story with narrower ones like "AI and the economy"
+  underneath it. A separate feature from Story grouping; related to the
+  topic-tags idea already considered and deferred during grouping.
+- Story relationships — non-hierarchical links between otherwise
+  separate Stories (e.g. climate change and AI). Depends on Stories
+  existing first; a separate future feature.
 - Any term needed for notifications, digests, or search
