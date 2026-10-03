@@ -63,6 +63,27 @@ defmodule Parallax.Feeds do
   end
 
   @doc """
+  A Story's linked Coverage, oldest first, with its Outlet preloaded.
+  `opts[:since]` limits to Coverage attached after that time — used to
+  find what's new since a Story's last synthesis.
+  """
+  def list_coverage_by_story(story_id, opts \\ []) do
+    from(c in Coverage,
+      where: c.story_id == ^story_id,
+      order_by: [asc: c.inserted_at],
+      preload: :outlet
+    )
+    |> since_filter(Keyword.get(opts, :since))
+    |> Repo.all()
+  end
+
+  defp since_filter(query, nil), do: query
+
+  defp since_filter(query, since) do
+    from(c in query, where: c.inserted_at > ^since)
+  end
+
+  @doc """
   Fetches one outlet's feed and stores any Coverage not already seen,
   deduped on (outlet_id, dedup_key). Returns the count of newly stored
   items, or an error if the fetch/parse itself failed.

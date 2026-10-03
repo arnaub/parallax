@@ -1,8 +1,9 @@
 defmodule Parallax.Stories.Scheduler do
   @moduledoc """
-  Runs Story clustering once a day, independent of the hourly RSS
-  poller. Waits a full interval before its first run — use
-  `mix stories.cluster` to run on demand instead.
+  Runs the daily Story pipeline — clustering, then synthesis — once a
+  day, independent of the hourly RSS poller. Waits a full interval
+  before its first run — use `mix stories.cluster` to run on demand
+  instead.
   """
 
   use GenServer
@@ -24,6 +25,7 @@ defmodule Parallax.Stories.Scheduler do
   @impl true
   def handle_info(:cluster, state) do
     Stories.cluster_unclustered_coverage()
+    Stories.synthesize_stories_with_new_coverage()
     schedule_next_run()
     {:noreply, state}
   end

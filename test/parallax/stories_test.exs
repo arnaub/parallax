@@ -5,6 +5,7 @@ defmodule Parallax.StoriesTest do
   alias Parallax.Stories
   alias Parallax.Stories.Gemini
   alias Parallax.Stories.Story
+  alias Parallax.Stories.Synthesis
 
   defp create_outlet! do
     {:ok, outlet} =
@@ -170,6 +171,147 @@ defmodule Parallax.StoriesTest do
       still_unclustered = Feeds.list_unclustered_coverage()
       assert Enum.map(still_unclustered, & &1.id) == [broken.id]
       assert working.id not in Enum.map(still_unclustered, & &1.id)
+    end
+  end
+
+  describe "get_story!/1 and latest_synthesis/1" do
+    test "get_story!/1 fetches a Story by id" do
+      story = insert_story!(%{})
+      assert Stories.get_story!(story.id).id == story.id
+    end
+
+    test "latest_synthesis/1 returns nil when none exists" do
+      story = insert_story!(%{})
+      assert Stories.latest_synthesis(story.id) == nil
+    end
+  end
+
+  describe "synthesize_stories_with_new_coverage/0" do
+    defp synthesis_decision(overrides \\ %{}) do
+      Map.merge(
+        %{
+          "started" => "It started",
+          "current_state" => "Now",
+          "implications" => "Matters",
+          "perspectives" => [
+            %{"label" => "Side A", "description" => "Argues X"}
+          ],
+          "outlet_framings" => []
+        },
+        overrides
+      )
+    end
+
+    test "skips a Story with no linked Coverage, without calling Gemini" do
+      story = insert_story!(%{last_coverage_at: ~U[2024-06-01 00:00:00Z]})
+
+      Req.Test.stub(Gemini, fn _conn ->
+        flunk("Gemini should not have been called")
+      end)
+
+      assert [{:ok, :no_coverage}] =
+               Stories.synthesize_stories_with_new_coverage()
+
+      assert Stories.latest_synthesis(story.id) == nil
+    end
+
+    test "builds a synthesis for a Story with Coverage and no previous version" do
+      outlet = create_outlet!()
+      story = insert_story!(%{last_coverage_at: ~U[2024-06-01 00:00:00Z]})
+      coverage = insert_coverage!(outlet, %{story_id: story.id, relevant: true})
+
+      stub_gemini_decision(
+        synthesis_decision(%{
+          "outlet_framings" => [
+            %{
+              "outlet_id" => outlet.id,
+              "perspective_label" => "Side A",
+              "framing" => "Leans X"
+            }
+          ]
+        })
+      )
+
+      assert [{:ok, :synthesized}] =
+               Stories.synthesize_stories_with_new_coverage()
+
+      synthesis = Stories.latest_synthesis(story.id)
+      assert synthesis.started == "It started"
+      assert [%{label: "Side A"}] = synthesis.perspectives
+      assert [framing] = synthesis.outlet_framings
+      assert framing.outlet_id == coverage.outlet_id
+      assert framing.perspective_id == hd(synthesis.perspectives).id
+    end
+
+    test "skips a Story with no Coverage newer than its last synthesis" do
+      story = insert_story!(%{last_coverage_at: ~U[2024-01-01 00:00:00Z]})
+
+      Synthesis
+      |> struct(%{
+        story_id: story.id,
+        started: "It started",
+        current_state: "Now",
+        implications: "Matters",
+        inserted_at: ~U[2024-02-01 00:00:00Z],
+        updated_at: ~U[2024-02-01 00:00:00Z]
+      })
+      |> Repo.insert!()
+
+      stub_gemini_decision(synthesis_decision())
+      assert [] = Stories.synthesize_stories_with_new_coverage()
+
+      assert Stories.latest_synthesis(story.id).current_state == "Now"
+    end
+
+    test "one Story's Gemini failure doesn't stop the others" do
+      outlet = create_outlet!()
+
+      broken =
+        insert_story!(%{
+          title: "broken",
+          last_coverage_at: ~U[2024-06-01 00:00:00Z]
+        })
+
+      insert_coverage!(outlet, %{story_id: broken.id, relevant: true})
+
+      working =
+        insert_story!(%{
+          title: "working",
+          last_coverage_at: ~U[2024-06-01 00:00:00Z]
+        })
+
+      insert_coverage!(outlet, %{story_id: working.id, relevant: true})
+
+      Req.Test.stub(Gemini, fn conn ->
+        {:ok, raw_body, conn} = Plug.Conn.read_body(conn)
+        body = Jason.decode!(raw_body)
+
+        text =
+          get_in(body, ["contents", Access.at(0), "parts", Access.at(0), "text"]) ||
+            ""
+
+        if String.contains?(text, "broken") do
+          Plug.Conn.send_resp(conn, 500, "boom")
+        else
+          Req.Test.json(conn, %{
+            "candidates" => [
+              %{
+                "content" => %{
+                  "parts" => [%{"text" => Jason.encode!(synthesis_decision())}]
+                }
+              }
+            ]
+          })
+        end
+      end)
+
+      results = Stories.synthesize_stories_with_new_coverage()
+
+      assert Enum.any?(results, &match?({:error, _reason}, &1))
+      assert Enum.any?(results, &match?({:ok, :synthesized}, &1))
+
+      assert Stories.latest_synthesis(broken.id) == nil
+      assert Stories.latest_synthesis(working.id) != nil
     end
   end
 end

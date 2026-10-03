@@ -46,4 +46,12 @@ defmodule ParallaxWeb.DashboardLiveTest do
     older_index = :binary.match(html, "Older story") |> elem(0)
     assert newer_index < older_index
   end
+
+  test "story cards link to the story's detail page", %{conn: conn} do
+    story = insert_story!(%{title: "A story"})
+
+    {:ok, _view, html} = live(conn, ~p"/")
+
+    assert html =~ ~s(href="/stories/#{story.id}")
+  end
 end

@@ -15,7 +15,12 @@ defmodule ParallaxWeb.DashboardLive do
   defp story_card(assigns) do
     ~H"""
     <article class="border-b border-zinc-200 py-4">
-      <h2 class="text-lg font-semibold">{@story.title}</h2>
+      <.link
+        navigate={~p"/stories/#{@story.id}"}
+        class="text-lg font-semibold hover:underline"
+      >
+        {@story.title}
+      </.link>
       <p class="mt-1 text-zinc-700">{@story.description}</p>
     </article>
     """

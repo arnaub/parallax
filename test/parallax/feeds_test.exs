@@ -208,6 +208,53 @@ defmodule Parallax.FeedsTest do
     end
   end
 
+  describe "list_coverage_by_story/2" do
+    test "only returns that Story's Coverage, oldest first" do
+      outlet = create_outlet!()
+      story = insert_story!()
+      other_story = insert_story!()
+
+      older =
+        insert_coverage!(outlet, %{
+          story_id: story.id,
+          inserted_at: ~U[2024-01-01 00:00:00Z]
+        })
+
+      newer =
+        insert_coverage!(outlet, %{
+          story_id: story.id,
+          inserted_at: ~U[2024-02-01 00:00:00Z]
+        })
+
+      insert_coverage!(outlet, %{story_id: other_story.id})
+
+      results = Feeds.list_coverage_by_story(story.id)
+
+      assert Enum.map(results, & &1.id) == [older.id, newer.id]
+    end
+
+    test "with :since, only returns Coverage inserted after that time" do
+      outlet = create_outlet!()
+      story = insert_story!()
+
+      insert_coverage!(outlet, %{
+        story_id: story.id,
+        inserted_at: ~U[2024-01-01 00:00:00Z]
+      })
+
+      recent =
+        insert_coverage!(outlet, %{
+          story_id: story.id,
+          inserted_at: ~U[2024-03-01 00:00:00Z]
+        })
+
+      results =
+        Feeds.list_coverage_by_story(story.id, since: ~U[2024-02-01 00:00:00Z])
+
+      assert Enum.map(results, & &1.id) == [recent.id]
+    end
+  end
+
   defp insert_story!(attrs \\ %{}) do
     defaults = %{
       title: "A story",

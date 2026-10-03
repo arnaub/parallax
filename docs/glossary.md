@@ -37,4 +37,10 @@ Defined only once the related feature is planned, not before:
 - Story relationships — non-hierarchical links between otherwise
   separate Stories (e.g. climate change and AI). Depends on Stories
   existing first; a separate future feature.
+- Outlet leaning analysis — aggregating an outlet's perspective
+  alignment across many Stories' syntheses (real `outlet_id`/
+  `perspective_id` foreign keys, not re-analyzed text) to surface
+  patterns in how an outlet tends to frame conflicts. Depends on Story
+  synthesis existing first and running across enough Stories to be
+  meaningful; a separate future feature.
 - Any term needed for notifications, digests, or search

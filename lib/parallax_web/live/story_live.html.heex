@@ -1,0 +1,44 @@
+<div class="mx-auto max-w-2xl">
+  <.link navigate={~p"/"} class="text-sm text-zinc-500 hover:underline">
+    ← Dashboard
+  </.link>
+
+  <h1 class="mt-4 text-2xl font-bold">{@story.title}</h1>
+
+  <div :if={@synthesis == nil} class="mt-4">
+    <p class="text-zinc-700">{@story.description}</p>
+    <p class="mt-2 text-sm text-zinc-500">
+      The full breakdown hasn't been generated yet.
+    </p>
+  </div>
+
+  <div :if={@synthesis} class="mt-4 space-y-6">
+    <section>
+      <h2 class="text-sm font-semibold uppercase text-zinc-500">
+        How it started
+      </h2>
+      <p class="mt-1 text-zinc-700">{@synthesis.started}</p>
+    </section>
+
+    <section>
+      <h2 class="text-sm font-semibold uppercase text-zinc-500">
+        Where it stands now
+      </h2>
+      <p class="mt-1 text-zinc-700">{@synthesis.current_state}</p>
+    </section>
+
+    <section :if={@framing_groups != []}>
+      <h2 class="text-sm font-semibold uppercase text-zinc-500">
+        How outlets differ
+      </h2>
+      <.framing_group :for={group <- @framing_groups} group={group} />
+    </section>
+
+    <section>
+      <h2 class="text-sm font-semibold uppercase text-zinc-500">
+        Why it matters
+      </h2>
+      <p class="mt-1 text-zinc-700">{@synthesis.implications}</p>
+    </section>
+  </div>
+</div>
