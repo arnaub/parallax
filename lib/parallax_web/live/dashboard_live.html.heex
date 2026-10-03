@@ -1,11 +1,13 @@
 <div class="mx-auto max-w-2xl">
   <h1 class="text-2xl font-bold">Dashboard</h1>
 
-  <p :if={@coverage == []} class="mt-4 text-zinc-500">
-    No coverage yet — wait for the next scheduled poll, or run <code>mix feeds.poll</code>.
+  <p :if={@stories == []} class="mt-4 text-zinc-500">
+    No stories yet — wait for the next scheduled poll and clustering run, or run
+    <code>mix feeds.poll</code>
+    then <code>mix stories.cluster</code>.
   </p>
 
-  <div :if={@coverage != []}>
-    <.coverage_card :for={item <- @coverage} item={item} />
+  <div :if={@stories != []}>
+    <.story_card :for={story <- @stories} story={story} />
   </div>
 </div>

@@ -26,11 +26,7 @@ XML — it fetches a feed URL and parses it into plain item maps, stripping
 any embedded HTML and decoding common entities from the summary so every
 consumer gets clean text. `Feeds` itself turns those into Coverage rows,
 deduped per outlet on a computed `dedup_key` (the feed item's guid,
-falling back to its URL). `ParallaxWeb.DashboardLive` is the only current
-reader: it calls `Feeds.list_coverage/1` for the latest 30 rows (newest
-`published_at`, falling back to `inserted_at` when a feed omitted the
-date) and renders them — no personalized ranking yet, no live updates
-after the page loads.
+falling back to its URL).
 
 `Parallax.Stories.Scheduler` (a separate supervised GenServer, on its own
 daily interval — independent of the hourly `Feeds.Poller`) runs
@@ -39,8 +35,15 @@ item, it asks Gemini (`Stories.Matcher` + `Stories.Gemini`) to judge
 whether it's significant news at all, and if so, to either match it to
 one of the ~50 most recently-active Stories or start a new one — all in
 one call. Items are processed sequentially, paced below the API's rate
-limit, since every call hits the same endpoint. Nothing reads Stories
-yet — that starts with the Story synthesis feature.
+limit, since every call hits the same endpoint.
+
+`ParallaxWeb.DashboardLive` is the only current reader, and reads
+Stories, not raw Coverage: it calls `Stories.list_stories/1` for the
+latest 30 (newest `last_coverage_at` first) and renders each one's
+title and description — no outlet list or per-article link, since a
+Story spans many outlets. No personalized ranking yet, no live updates
+after the page loads, no click-through to a Story's own page yet
+(that's the Story synthesis feature).
 
 ## Reference modules
 
