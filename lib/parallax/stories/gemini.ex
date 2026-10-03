@@ -16,11 +16,18 @@ defmodule Parallax.Stories.Gemini do
   present (429 only; 503 has none, so uses the default delay). This is
   a safety net on top of `Stories`' own pacing between calls, not the
   primary defense against the rate limit.
+
+  A 429's `retryDelay` can be daily-quota-sized (a live run hit one over
+  5 hours long) rather than the usual per-minute scale — retrying would
+  mean actually sleeping that long and blocking the whole sequential
+  pipeline. Delays over `@max_retry_delay_ms` give up immediately
+  instead of retrying.
   """
 
   @model "gemini-3.8-flash"
   @endpoint "https://generativelanguage.googleapis.com/v1beta/models/#{@model}:generateContent"
   @max_retries 2
+  @max_retry_delay_ms :timer.seconds(60)
 
   @spec generate(String.t(), map()) :: {:ok, map()} | {:error, term()}
   def generate(prompt, response_schema) do
@@ -47,7 +54,8 @@ defmodule Parallax.Stories.Gemini do
 
     case options |> Req.new() |> Req.post() |> handle_response() do
       {:error, {reason, delay_ms}}
-      when reason in [:rate_limited, :unavailable] and retries_left > 0 ->
+      when reason in [:rate_limited, :unavailable] and retries_left > 0 and
+             delay_ms <= @max_retry_delay_ms ->
         Process.sleep(delay_ms)
         request(prompt, response_schema, api_key, retries_left - 1)
 

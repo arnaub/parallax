@@ -1,5 +1,8 @@
 defmodule Parallax.Stories.GeminiTest do
-  use ExUnit.Case, async: true
+  # async: false — GEMINI_API_KEY is OS-process-global. The missing-key
+  # test temporarily unsets it; async: true would let that race against
+  # other modules' tests that depend on it being set.
+  use ExUnit.Case, async: false
 
   alias Parallax.Stories.Gemini
 
@@ -114,6 +117,24 @@ defmodule Parallax.Stories.GeminiTest do
 
     assert {:error, {:rate_limited, _delay_ms}} =
              Gemini.generate("a prompt", @schema)
+  end
+
+  test "gives up immediately on a retryDelay above the cap, without sleeping" do
+    {:ok, counter} = Agent.start_link(fn -> 0 end)
+
+    Req.Test.stub(Gemini, fn conn ->
+      Agent.update(counter, &(&1 + 1))
+
+      conn
+      |> Plug.Conn.put_status(429)
+      |> Req.Test.json(rate_limited_response("18765s"))
+    end)
+
+    assert {:error, {:rate_limited, delay_ms}} =
+             Gemini.generate("a prompt", @schema)
+
+    assert delay_ms == 18_765_000
+    assert Agent.get(counter, & &1) == 1
   end
 
   test "retries on 503 (overloaded), then succeeds" do
