@@ -42,6 +42,26 @@ defmodule Parallax.Feeds do
     |> Repo.all()
   end
 
+  @doc "Coverage never screened for relevance yet, oldest first, with its Outlet preloaded."
+  def list_unclustered_coverage do
+    from(c in Coverage,
+      where: is_nil(c.relevant),
+      order_by: [asc: coalesce(c.published_at, c.inserted_at)],
+      preload: :outlet
+    )
+    |> Repo.all()
+  end
+
+  @doc "Assigns a Coverage item to a Story, marking it relevant."
+  def assign_story(%Coverage{} = coverage, story_id) do
+    coverage |> Coverage.story_changeset(story_id) |> Repo.update()
+  end
+
+  @doc "Marks a Coverage item as screened and not significant enough for a Story."
+  def mark_irrelevant(%Coverage{} = coverage) do
+    coverage |> Coverage.irrelevant_changeset() |> Repo.update()
+  end
+
   @doc """
   Fetches one outlet's feed and stores any Coverage not already seen,
   deduped on (outlet_id, dedup_key). Returns the count of newly stored
